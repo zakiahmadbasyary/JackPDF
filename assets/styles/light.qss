@@ -360,6 +360,63 @@ QFrame#InfoCard {
 }
 
 /* --------------------------------------------------------------------------
+   Split Multi-Range Controls
+   -------------------------------------------------------------------------- */
+QCheckBox#StyledCheckBox {
+    color: #111B29;
+    font-size: 9.5pt;
+    font-weight: 500;
+    spacing: 8px;
+}
+
+QCheckBox#StyledCheckBox::indicator {
+    width: 17px;
+    height: 17px;
+}
+
+QFrame#RangeRow {
+    background: #FFFFFF;
+    border: 1px solid #DCE3EC;
+    border-radius: 9px;
+    padding: 8px 14px;
+}
+
+QLabel#RangeTitle {
+    font-size: 9.5pt;
+    font-weight: 700;
+    color: #111B29;
+    min-width: 75px;
+}
+
+QLabel#RangePageCount {
+    color: #5D6B7D;
+    font-size: 8.5pt;
+    font-weight: 500;
+    min-width: 85px;
+}
+
+QPushButton#RangeDeleteBtn {
+    background: #FFFFFF;
+    color: #D64545;
+    border: 1px solid #FCD4D4;
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 8.5pt;
+    font-weight: 600;
+    min-height: 22px;
+}
+
+QPushButton#RangeDeleteBtn:hover {
+    background: #FFF1F1;
+    border-color: #D64545;
+    color: #B91C1C;
+}
+
+QPushButton#RangeDeleteBtn:pressed {
+    background: #FEE2E2;
+}
+
+/* --------------------------------------------------------------------------
    Progress Bar
    -------------------------------------------------------------------------- */
 QProgressBar#MergeProgressBar {
@@ -408,6 +465,52 @@ QToolTip {
     border: 1px solid #142B4D;
     padding: 7px 9px;
     border-radius: 6px;
+}
+
+/* --------------------------------------------------------------------------
+   Dialogs & Message Boxes (High Contrast Light Theme)
+   -------------------------------------------------------------------------- */
+QDialog,
+QMessageBox {
+    background-color: #FFFFFF;
+    color: #111B29;
+}
+
+QMessageBox QLabel {
+    color: #111B29;
+    font-size: 10pt;
+    background: transparent;
+    min-height: 40px;
+}
+
+QMessageBox QPushButton {
+    background: #FFFFFF;
+    color: #263445;
+    border: 1px solid #DCE3EC;
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-weight: 500;
+    font-size: 9.5pt;
+    min-width: 90px;
+}
+
+QMessageBox QPushButton:hover {
+    background: #EEF2F7;
+    border-color: #98A6B8;
+    color: #111B29;
+}
+
+QMessageBox QPushButton:default,
+QMessageBox QPushButton#PrimaryButton {
+    background: #1D6FEA;
+    color: #FFFFFF;
+    border: none;
+    font-weight: 600;
+}
+
+QMessageBox QPushButton:default:hover,
+QMessageBox QPushButton#PrimaryButton:hover {
+    background: #1557B0;
 }
 
 /* --------------------------------------------------------------------------
@@ -533,4 +636,14 @@ QLabel#PreviewDocName {
 QLabel#PreviewDocMeta {
     font-size: 8pt;
     color: #5D6B7D;
+}
+
+QLabel#PreviewSummaryBadge {
+    color: #1D6FEA;
+    font-size: 8.5pt;
+    font-weight: 600;
+    background: #DCEBFF;
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin-top: 4px;
 }

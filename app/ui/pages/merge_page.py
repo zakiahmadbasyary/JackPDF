@@ -324,8 +324,14 @@ class PdfPreviewPanel(QFrame):
         self.details_label.setObjectName("PreviewDocMeta")
         self.details_label.setWordWrap(True)
 
+        self.summary_badge = QLabel()
+        self.summary_badge.setObjectName("PreviewSummaryBadge")
+        self.summary_badge.setWordWrap(True)
+        self.summary_badge.setVisible(False)
+
         meta_layout.addWidget(self.name_label)
         meta_layout.addWidget(self.details_label)
+        meta_layout.addWidget(self.summary_badge)
         layout.addWidget(self.meta_widget)
 
     def load_document(self, path: str, page_num: int = 0):
@@ -399,6 +405,18 @@ class PdfPreviewPanel(QFrame):
         self.name_label.setText("Tidak ada dokumen terpilih")
         self.name_label.setToolTip("")
         self.details_label.setText("Pilih dokumen pada tabel untuk melihat pratinjau.")
+        if hasattr(self, "summary_badge"):
+            self.summary_badge.setText("")
+            self.summary_badge.setVisible(False)
+
+    def set_summary_badge(self, text: str):
+        if hasattr(self, "summary_badge"):
+            self.summary_badge.setText(text)
+            self.summary_badge.setVisible(bool(text))
+
+    def go_to_page(self, page_num: int):
+        if self.current_path and 0 <= page_num < self.total_pages:
+            self.load_document(self.current_path, page_num)
 
     def show_error(self, message: str):
         self.current_path = None
@@ -412,6 +430,9 @@ class PdfPreviewPanel(QFrame):
         self.name_label.setText(message)
         self.name_label.setToolTip("")
         self.details_label.setText("")
+        if hasattr(self, "summary_badge"):
+            self.summary_badge.setText("")
+            self.summary_badge.setVisible(False)
 
     def prev_page(self):
         if self.current_path and self.current_page > 0:
@@ -448,15 +469,27 @@ class MergePage(QWidget):
         self.content_layout.setContentsMargins(32, 28, 32, 28)
         self.content_layout.setSpacing(18)
 
-        # Header Section
+        # Header Section (Tightened & VCenter aligned)
         header = QHBoxLayout()
+        header.setSpacing(12)
+        header.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+
         back_btn = QPushButton("←  Kembali")
         back_btn.setObjectName("SecondaryButton")
         back_btn.setToolTip("Kembali ke halaman utama JackPDF.")
         back_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         back_btn.clicked.connect(self.go_back.emit)
 
+        header_icon = QLabel()
+        feat_pix = get_feature_icon("Merge PDF", size=40)
+        if not feat_pix.isNull():
+            header_icon.setPixmap(feat_pix)
+            header_icon.setFixedSize(40, 40)
+
         title_box = QVBoxLayout()
+        title_box.setSpacing(2)
+        title_box.setContentsMargins(0, 0, 0, 0)
+
         title = QLabel("Merge PDF")
         title.setObjectName("PageTitle")
         subtitle = QLabel("Gabungkan beberapa dokumen PDF menjadi satu file berurutan.")
@@ -465,17 +498,9 @@ class MergePage(QWidget):
         title_box.addWidget(title)
         title_box.addWidget(subtitle)
 
-        header_icon = QLabel()
-        feat_pix = get_feature_icon("Merge PDF", size=40)
-        if not feat_pix.isNull():
-            header_icon.setPixmap(feat_pix)
-            header_icon.setFixedSize(40, 40)
-
         header.addWidget(back_btn)
-        header.addSpacing(12)
         if not feat_pix.isNull():
             header.addWidget(header_icon)
-            header.addSpacing(10)
         header.addLayout(title_box)
         header.addStretch()
         self.content_layout.addLayout(header)
@@ -1009,14 +1034,25 @@ class MergePage(QWidget):
             self.status_label.setText(f"Selesai! Disimpan ke: {os.path.basename(output_path)}")
             self.open_folder_btn.setVisible(True)
 
-            reply = QMessageBox.information(
-                self,
-                "Berhasil Menggabungkan PDF",
-                f"{message}\n\nLokasi file:\n{output_path}\n\nApakah kamu ingin membuka folder penyimpanan sekarang?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.Yes,
+            msg_box = QMessageBox(self)
+            msg_box.setWindowTitle("Berhasil Menggabungkan PDF")
+            msg_box.setIcon(QMessageBox.Icon.Information)
+            msg_box.setText(f"<b>{message}</b>")
+            msg_box.setInformativeText(
+                f"Lokasi file:\n{output_path}\n\nApakah Anda ingin membuka folder penyimpanan sekarang?"
             )
-            if reply == QMessageBox.StandardButton.Yes:
+            open_btn = msg_box.addButton("Buka Folder Hasil", QMessageBox.ButtonRole.AcceptRole)
+            open_btn.setObjectName("PrimaryButton")
+            open_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+
+            close_btn = msg_box.addButton("Tutup", QMessageBox.ButtonRole.RejectRole)
+            close_btn.setObjectName("SecondaryButton")
+            close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+
+            msg_box.setDefaultButton(open_btn)
+            msg_box.exec()
+
+            if msg_box.clickedButton() == open_btn:
                 self.open_output_folder()
         else:
             self.status_label.setText("Penggabungan gagal.")
