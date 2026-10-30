@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 
 from app.services.merge_service import merge_pdfs
 from app.utils.file_utils import format_file_size, open_in_file_manager
+from app.utils.icon_utils import get_feature_icon
 from app.utils.validators import validate_pdf_file
 from app.workers.pdf_worker import PdfTaskWorker
 
@@ -250,8 +251,17 @@ class MergePage(QWidget):
         title_box.addWidget(title)
         title_box.addWidget(subtitle)
 
+        header_icon = QLabel()
+        feat_pix = get_feature_icon("Merge PDF", size=40)
+        if not feat_pix.isNull():
+            header_icon.setPixmap(feat_pix)
+            header_icon.setFixedSize(40, 40)
+
         header.addWidget(back_btn)
         header.addSpacing(12)
+        if not feat_pix.isNull():
+            header.addWidget(header_icon)
+            header.addSpacing(10)
         header.addLayout(title_box)
         header.addStretch()
         self.content_layout.addLayout(header)

@@ -46,3 +46,29 @@ def test_responsive_grid_reflow():
     # Extra large size -> 4 columns
     home.resizeEvent(QResizeEvent(QSize(1600, 900), QSize(1150, 700)))
     assert home.current_cols == 4
+
+
+def test_feature_card_clickable():
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication(sys.argv)
+
+    from app.ui.home_page import FeatureCard
+    from PySide6.QtCore import Qt, QPointF
+    from PySide6.QtGui import QMouseEvent
+
+    card = FeatureCard("Merge PDF", "Gabungkan PDF", "Tooltip")
+    selected_features = []
+    card.selected.connect(selected_features.append)
+
+    # Click card directly
+    ev = QMouseEvent(
+        QMouseEvent.Type.MouseButtonPress,
+        QPointF(10, 10),
+        Qt.MouseButton.LeftButton,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+    card.mousePressEvent(ev)
+    assert selected_features == ["Merge PDF"]
+

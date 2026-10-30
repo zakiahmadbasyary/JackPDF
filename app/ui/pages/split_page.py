@@ -24,6 +24,7 @@ from app.services.split_service import (
     split_pdf_fixed_size,
 )
 from app.utils.file_utils import format_file_size, open_in_file_manager
+from app.utils.icon_utils import get_feature_icon
 from app.utils.validators import parse_page_range, validate_pdf_file
 from app.workers.pdf_worker import PdfTaskWorker
 
@@ -112,8 +113,17 @@ class SplitPage(QWidget):
         title_box.addWidget(title)
         title_box.addWidget(subtitle)
 
+        header_icon = QLabel()
+        feat_pix = get_feature_icon("Split PDF", size=40)
+        if not feat_pix.isNull():
+            header_icon.setPixmap(feat_pix)
+            header_icon.setFixedSize(40, 40)
+
         header.addWidget(back_btn)
         header.addSpacing(12)
+        if not feat_pix.isNull():
+            header.addWidget(header_icon)
+            header.addSpacing(10)
         header.addLayout(title_box)
         header.addStretch()
         layout.addLayout(header)
@@ -132,10 +142,14 @@ class SplitPage(QWidget):
         info_layout = QHBoxLayout(self.info_card)
         info_layout.setContentsMargins(16, 14, 16, 14)
 
-        icon_label = QLabel("PDF")
+        icon_label = QLabel()
         icon_label.setObjectName("FeatureIcon")
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         icon_label.setFixedSize(40, 40)
+        if not feat_pix.isNull():
+            icon_label.setPixmap(feat_pix)
+        else:
+            icon_label.setText("PDF")
         info_layout.addWidget(icon_label)
 
         self.file_details_label = QLabel("Detail File")

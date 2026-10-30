@@ -12,23 +12,34 @@ from PySide6.QtWidgets import (
 )
 
 
+from app.utils.icon_utils import get_feature_icon
+
+
 class FeatureCard(QFrame):
     selected = Signal(str)
 
     def __init__(self, title: str, description: str, tooltip: str):
         super().__init__()
+        self.title = title
         self.setObjectName("FeatureCard")
         self.setMinimumHeight(140)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(18, 16, 18, 16)
         layout.setSpacing(10)
 
-        icon_label = QLabel("PDF")
+        icon_label = QLabel()
         icon_label.setObjectName("FeatureIcon")
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        icon_label.setFixedSize(42, 42)
+        icon_label.setFixedSize(48, 48)
+
+        feat_pix = get_feature_icon(title, size=48)
+        if not feat_pix.isNull():
+            icon_label.setPixmap(feat_pix)
+        else:
+            icon_label.setText("PDF")
 
         title_label = QLabel(title)
         title_label.setObjectName("FeatureTitle")
@@ -40,14 +51,18 @@ class FeatureCard(QFrame):
         action = QPushButton("Buka tool  →")
         action.setObjectName("CardAction")
         action.setToolTip(tooltip)
-        action.setCursor(Qt.CursorShape.PointingHandCursor)
-        action.clicked.connect(lambda: self.selected.emit(title))
+        action.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
 
         self.setToolTip(tooltip)
         layout.addWidget(icon_label)
         layout.addWidget(title_label)
         layout.addWidget(description_label, 1)
         layout.addWidget(action, alignment=Qt.AlignmentFlag.AlignLeft)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.selected.emit(self.title)
+        super().mousePressEvent(event)
 
 
 class HomePage(QWidget):

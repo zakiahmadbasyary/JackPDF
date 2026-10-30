@@ -1,4 +1,5 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSize
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -13,16 +14,19 @@ from PySide6.QtWidgets import (
 from app.ui.home_page import HomePage
 from app.ui.pages.merge_page import MergePage
 from app.ui.pages.split_page import SplitPage
+from app.utils.icon_utils import get_app_icon, get_app_logo, get_feature_icon
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("JackPDF")
+        self.setWindowIcon(get_app_icon())
         self.resize(1100, 720)
         self.setMinimumSize(680, 480)
 
         root = QWidget()
+        root.setObjectName("CentralWidget")
         root_layout = QHBoxLayout(root)
         root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.setSpacing(0)
@@ -30,15 +34,28 @@ class MainWindow(QMainWindow):
         # Sidebar Frame
         sidebar = QFrame()
         sidebar.setObjectName("Sidebar")
-        sidebar.setFixedWidth(210)
+        sidebar.setFixedWidth(220)
 
         sidebar_layout = QVBoxLayout(sidebar)
         sidebar_layout.setContentsMargins(16, 20, 16, 16)
         sidebar_layout.setSpacing(8)
 
-        brand = QLabel("▣  JackPDF")
-        brand.setObjectName("Brand")
-        sidebar_layout.addWidget(brand)
+        # Brand header with official logo
+        brand_layout = QHBoxLayout()
+        brand_layout.setContentsMargins(0, 0, 0, 0)
+        brand_layout.setSpacing(10)
+
+        logo_label = QLabel()
+        logo_label.setPixmap(get_app_logo(32))
+        logo_label.setFixedSize(32, 32)
+
+        brand_text = QLabel("JackPDF")
+        brand_text.setObjectName("Brand")
+
+        brand_layout.addWidget(logo_label)
+        brand_layout.addWidget(brand_text)
+        brand_layout.addStretch()
+        sidebar_layout.addLayout(brand_layout)
 
         tagline = QLabel("Your everyday PDF toolkit")
         tagline.setObjectName("SidebarHint")
@@ -68,11 +85,17 @@ class MainWindow(QMainWindow):
         ]
 
         for label, tooltip, is_active in nav_items:
-            button = QPushButton(label)
+            button = QPushButton(f"  {label}")
             button.setObjectName("NavButton")
             button.setToolTip(tooltip)
             button.setCursor(Qt.CursorShape.PointingHandCursor if is_active else Qt.CursorShape.ArrowCursor)
             button.setEnabled(is_active)
+
+            # Set custom feature icon on nav buttons
+            feat_pix = get_feature_icon(label, size=20)
+            if not feat_pix.isNull():
+                button.setIcon(QIcon(feat_pix))
+                button.setIconSize(QSize(20, 20))
 
             if label == "Merge PDF":
                 button.clicked.connect(self.show_merge)
@@ -84,10 +107,6 @@ class MainWindow(QMainWindow):
 
         sidebar_layout.addStretch()
 
-        local_note = QLabel("●  File diproses secara lokal")
-        local_note.setObjectName("LocalNote")
-        local_note.setWordWrap(True)
-        sidebar_layout.addWidget(local_note)
 
         # Content Pages Stack
         self.content = QStackedWidget()
