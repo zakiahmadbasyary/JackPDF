@@ -312,4 +312,60 @@ QLabel#InputHint {
     font-size: 8.5pt;
 }
 
+QLabel#TableHint {
+    color: #475467;
+    font-size: 8.5pt;
+    padding: 2px 4px;
+}
+
+QWidget#RowActionContainer {
+    background: transparent;
+}
+
+QPushButton#TableDeleteBtn {
+    background: #FFFFFF;
+    color: #DC2626;
+    border: 1px solid #FECACA;
+    border-radius: 6px;
+    padding: 3px 12px;
+    font-size: 8.5pt;
+    font-weight: 600;
+    min-height: 22px;
+}
+
+QPushButton#TableDeleteBtn:hover {
+    background: #FEF2F2;
+    border-color: #EF4444;
+    color: #991B1B;
+}
+
+QPushButton#TableDeleteBtn:pressed {
+    background: #FEE2E2;
+}
+
+QMenu {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    padding: 6px;
+}
+
+QMenu::item {
+    padding: 7px 18px 7px 12px;
+    border-radius: 6px;
+    color: #334155;
+    font-size: 9.5pt;
+}
+
+QMenu::item:selected {
+    background: #EFF6FF;
+    color: #1D4ED8;
+}
+
+QMenu::separator {
+    height: 1px;
+    background: #E2E8F0;
+    margin: 4px 6px;
+}
+
 
