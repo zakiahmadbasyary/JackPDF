@@ -444,3 +444,93 @@ QScrollBar::add-page:vertical,
 QScrollBar::sub-page:vertical {
     background: transparent;
 }
+
+/* --------------------------------------------------------------------------
+   Document Preview Side Panel
+   -------------------------------------------------------------------------- */
+QFrame#PreviewCard {
+    background: #FFFFFF;
+    border: 1px solid #DCE3EC;
+    border-radius: 12px;
+}
+
+QLabel#PreviewTitle {
+    font-size: 10pt;
+    font-weight: 700;
+    color: #111B29;
+}
+
+QLabel#PreviewBadge {
+    background: #EEF2F7;
+    color: #1D6FEA;
+    font-size: 8.5pt;
+    font-weight: 600;
+    border-radius: 9px;
+    padding: 2px 8px;
+}
+
+QFrame#PreviewCanvas {
+    background: #F7F9FC;
+    border: 1px solid #EEF2F7;
+    border-radius: 8px;
+    min-height: 250px;
+}
+
+QLabel#PreviewImage {
+    background: #FFFFFF;
+    border: 1px solid #DCE3EC;
+    border-radius: 4px;
+    padding: 2px;
+}
+
+QLabel#PreviewEmptyIcon {
+    font-size: 26pt;
+    color: #98A6B8;
+}
+
+QLabel#PreviewEmptyText {
+    color: #5D6B7D;
+    font-size: 8.5pt;
+}
+
+QPushButton#PreviewNavBtn {
+    background: #FFFFFF;
+    border: 1px solid #DCE3EC;
+    border-radius: 6px;
+    color: #263445;
+    font-size: 8.5pt;
+    font-weight: 700;
+    min-width: 32px;
+    max-width: 32px;
+    min-height: 28px;
+    max-height: 28px;
+}
+
+QPushButton#PreviewNavBtn:hover {
+    background: #EEF2F7;
+    border-color: #98A6B8;
+    color: #1D6FEA;
+}
+
+QPushButton#PreviewNavBtn:disabled {
+    background: #F7F9FC;
+    border-color: #EEF2F7;
+    color: #CBD5E1;
+}
+
+QLabel#PreviewNavLabel {
+    font-size: 8.5pt;
+    font-weight: 500;
+    color: #5D6B7D;
+}
+
+QLabel#PreviewDocName {
+    font-size: 9pt;
+    font-weight: 700;
+    color: #111B29;
+}
+
+QLabel#PreviewDocMeta {
+    font-size: 8pt;
+    color: #5D6B7D;
+}

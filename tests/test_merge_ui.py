@@ -182,3 +182,72 @@ def test_merge_table_styling_and_row_persistence(app, tmp_path):
     page.remove_by_path(pdf1)
     assert len(page.file_list) == 1
     assert page.file_list[0]["path"] == pdf2
+
+
+def test_pdf_preview_panel_functionality(app, tmp_path):
+    page = MergePage()
+    page.resize(900, 600)
+    page.show()
+    assert hasattr(page, "preview_panel")
+    assert hasattr(page, "toggle_preview_btn")
+    assert page.preview_panel.empty_widget.isVisible()
+    assert not page.preview_panel.image_label.isVisible()
+
+    pdf_multi = str(tmp_path / "multi.pdf")
+    pdf_single = str(tmp_path / "single.pdf")
+    create_test_pdf(pdf_multi, 3)
+    create_test_pdf(pdf_single, 1)
+
+    # Add files: first row should auto-select and render preview
+    page.add_files([pdf_multi, pdf_single])
+    assert page.preview_panel.current_path == pdf_multi
+    assert page.preview_panel.current_page == 0
+    assert page.preview_panel.total_pages == 3
+    assert page.preview_panel.image_label.isVisible()
+    assert page.preview_panel.image_label.pixmap() is not None
+    assert page.preview_panel.page_badge.text() == "Hal 1/3"
+    assert page.preview_panel.nav_widget.isVisible()
+    assert not page.preview_panel.prev_btn.isEnabled()
+    assert page.preview_panel.next_btn.isEnabled()
+
+    # Next page navigation
+    page.preview_panel.next_page()
+    assert page.preview_panel.current_page == 1
+    assert page.preview_panel.page_badge.text() == "Hal 2/3"
+    assert page.preview_panel.prev_btn.isEnabled()
+    assert page.preview_panel.next_btn.isEnabled()
+
+    # Next page to last page
+    page.preview_panel.next_page()
+    assert page.preview_panel.current_page == 2
+    assert page.preview_panel.page_badge.text() == "Hal 3/3"
+    assert page.preview_panel.prev_btn.isEnabled()
+    assert not page.preview_panel.next_btn.isEnabled()
+
+    # Previous page navigation
+    page.preview_panel.prev_page()
+    assert page.preview_panel.current_page == 1
+
+    # Select second row (single page PDF)
+    page.table.selectRow(1)
+    assert page.preview_panel.current_path == pdf_single
+    assert page.preview_panel.current_page == 0
+    assert page.preview_panel.total_pages == 1
+    assert page.preview_panel.page_badge.text() == "Hal 1/1"
+    assert not page.preview_panel.nav_widget.isVisible()
+
+    # Test toggle preview panel
+    assert page.preview_panel.isVisible()
+    page.toggle_preview_btn.click()
+    assert not page.preview_panel.isVisible()
+    assert page.toggle_preview_btn.text() == "Lihat Pratinjau"
+    page.toggle_preview_btn.click()
+    assert page.preview_panel.isVisible()
+    assert page.toggle_preview_btn.text() == "Sembunyikan Pratinjau"
+
+    # Test clear all resets preview
+    page.clear_all()
+    assert page.preview_panel.current_path is None
+    assert page.preview_panel.empty_widget.isVisible()
+    assert not page.preview_panel.image_label.isVisible()
+    assert page.preview_panel.page_badge.text() == "—"

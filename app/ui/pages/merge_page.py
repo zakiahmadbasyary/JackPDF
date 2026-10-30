@@ -2,8 +2,9 @@ import os
 import re
 from typing import List, Dict, Any, Optional
 
+import pymupdf as fitz
 from PySide6.QtCore import Qt, Signal, QPoint, QMimeData
-from PySide6.QtGui import QDrag, QPainter, QPen, QColor
+from PySide6.QtGui import QDrag, QPainter, QPen, QColor, QImage, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QFileDialog,
@@ -209,6 +210,218 @@ class MergeTableWidget(QTableWidget):
             painter.drawLine(0, y, self.viewport().width(), y)
 
 
+class PdfPreviewPanel(QFrame):
+    """
+    Side panel displaying a live preview of the selected PDF document,
+    its page navigation, and metadata.
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("PreviewCard")
+        self.setFixedWidth(300)
+        self.setMinimumHeight(380)
+
+        self.current_path: Optional[str] = None
+        self.current_page: int = 0
+        self.total_pages: int = 0
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(14, 14, 14, 14)
+        layout.setSpacing(10)
+
+        # Header Row: Title + Page Badge
+        header_layout = QHBoxLayout()
+        header_layout.setSpacing(8)
+
+        self.title_label = QLabel("Pratinjau Dokumen")
+        self.title_label.setObjectName("PreviewTitle")
+
+        self.page_badge = QLabel("—")
+        self.page_badge.setObjectName("PreviewBadge")
+        self.page_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        header_layout.addWidget(self.title_label)
+        header_layout.addStretch()
+        header_layout.addWidget(self.page_badge)
+        layout.addLayout(header_layout)
+
+        # Canvas Area for Document Thumbnail
+        self.canvas = QFrame()
+        self.canvas.setObjectName("PreviewCanvas")
+        canvas_layout = QVBoxLayout(self.canvas)
+        canvas_layout.setContentsMargins(10, 10, 10, 10)
+        canvas_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.image_label = QLabel()
+        self.image_label.setObjectName("PreviewImage")
+        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.image_label.setVisible(False)
+
+        self.empty_widget = QWidget()
+        empty_layout = QVBoxLayout(self.empty_widget)
+        empty_layout.setContentsMargins(0, 20, 0, 20)
+        empty_layout.setSpacing(8)
+        empty_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        empty_icon = QLabel("📄")
+        empty_icon.setObjectName("PreviewEmptyIcon")
+        empty_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        empty_text = QLabel("Pilih dokumen pada tabel\nuntuk melihat pratinjau")
+        empty_text.setObjectName("PreviewEmptyText")
+        empty_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        empty_layout.addWidget(empty_icon)
+        empty_layout.addWidget(empty_text)
+
+        canvas_layout.addWidget(self.image_label)
+        canvas_layout.addWidget(self.empty_widget)
+        layout.addWidget(self.canvas, stretch=1)
+
+        # Page Navigation Row (Previous / Page Info / Next)
+        self.nav_widget = QWidget()
+        self.nav_widget.setObjectName("PreviewNavWidget")
+        nav_layout = QHBoxLayout(self.nav_widget)
+        nav_layout.setContentsMargins(0, 0, 0, 0)
+        nav_layout.setSpacing(8)
+
+        self.prev_btn = QPushButton("◀")
+        self.prev_btn.setObjectName("PreviewNavBtn")
+        self.prev_btn.setToolTip("Halaman sebelumnya")
+        self.prev_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.prev_btn.setEnabled(False)
+        self.prev_btn.clicked.connect(self.prev_page)
+
+        self.nav_label = QLabel("Halaman 1 / 1")
+        self.nav_label.setObjectName("PreviewNavLabel")
+        self.nav_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.next_btn = QPushButton("▶")
+        self.next_btn.setObjectName("PreviewNavBtn")
+        self.next_btn.setToolTip("Halaman selanjutnya")
+        self.next_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.next_btn.setEnabled(False)
+        self.next_btn.clicked.connect(self.next_page)
+
+        nav_layout.addWidget(self.prev_btn)
+        nav_layout.addWidget(self.nav_label, stretch=1)
+        nav_layout.addWidget(self.next_btn)
+        layout.addWidget(self.nav_widget)
+        self.nav_widget.setVisible(False)
+
+        # Document Metadata Box
+        self.meta_widget = QWidget()
+        self.meta_widget.setObjectName("PreviewMetaWidget")
+        meta_layout = QVBoxLayout(self.meta_widget)
+        meta_layout.setContentsMargins(2, 4, 2, 2)
+        meta_layout.setSpacing(3)
+
+        self.name_label = QLabel("Tidak ada dokumen terpilih")
+        self.name_label.setObjectName("PreviewDocName")
+        self.name_label.setWordWrap(True)
+
+        self.details_label = QLabel("Pilih dokumen pada tabel untuk melihat pratinjau.")
+        self.details_label.setObjectName("PreviewDocMeta")
+        self.details_label.setWordWrap(True)
+
+        meta_layout.addWidget(self.name_label)
+        meta_layout.addWidget(self.details_label)
+        layout.addWidget(self.meta_widget)
+
+    def load_document(self, path: str, page_num: int = 0):
+        if not path or not os.path.exists(path):
+            self.clear_preview()
+            return
+
+        self.current_path = path
+        try:
+            doc = fitz.open(path)
+            if doc.is_encrypted:
+                doc.close()
+                self.show_error("Dokumen dilindungi kata sandi.")
+                return
+
+            self.total_pages = doc.page_count
+            if self.total_pages < 1:
+                doc.close()
+                self.show_error("Dokumen tidak memiliki halaman.")
+                return
+
+            self.current_page = max(0, min(page_num, self.total_pages - 1))
+            page = doc.load_page(self.current_page)
+
+            # High quality rasterization: DPI 120 gives crisp preview without heavy memory overhead
+            zoom = 120.0 / 72.0
+            matrix = fitz.Matrix(zoom, zoom)
+            pix = page.get_pixmap(matrix=matrix, alpha=False)
+
+            qimg = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888)
+            pixmap = QPixmap.fromImage(qimg.copy())
+            doc.close()
+
+            scaled = pixmap.scaled(
+                260,
+                300,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+            self.image_label.setPixmap(scaled)
+            self.image_label.setVisible(True)
+            self.empty_widget.setVisible(False)
+
+            self.page_badge.setText(f"Hal {self.current_page + 1}/{self.total_pages}")
+            self.nav_label.setText(f"Hal {self.current_page + 1} dari {self.total_pages}")
+
+            self.prev_btn.setEnabled(self.current_page > 0)
+            self.next_btn.setEnabled(self.current_page < self.total_pages - 1)
+            self.nav_widget.setVisible(self.total_pages > 1)
+
+            filename = os.path.basename(path)
+            self.name_label.setText(filename)
+            self.name_label.setToolTip(path)
+            size_str = format_file_size(os.path.getsize(path))
+            self.details_label.setText(f"{size_str} • {self.total_pages} Halaman")
+        except Exception:
+            self.show_error("Gagal memuat pratinjau.")
+
+    def clear_preview(self):
+        self.current_path = None
+        self.current_page = 0
+        self.total_pages = 0
+        self.image_label.clear()
+        self.image_label.setVisible(False)
+        self.empty_widget.setVisible(True)
+        self.page_badge.setText("—")
+        self.nav_label.setText("Halaman 1 / 1")
+        self.prev_btn.setEnabled(False)
+        self.next_btn.setEnabled(False)
+        self.nav_widget.setVisible(False)
+        self.name_label.setText("Tidak ada dokumen terpilih")
+        self.name_label.setToolTip("")
+        self.details_label.setText("Pilih dokumen pada tabel untuk melihat pratinjau.")
+
+    def show_error(self, message: str):
+        self.current_path = None
+        self.current_page = 0
+        self.total_pages = 0
+        self.image_label.clear()
+        self.image_label.setVisible(False)
+        self.empty_widget.setVisible(True)
+        self.page_badge.setText("Error")
+        self.nav_widget.setVisible(False)
+        self.name_label.setText(message)
+        self.name_label.setToolTip("")
+        self.details_label.setText("")
+
+    def prev_page(self):
+        if self.current_path and self.current_page > 0:
+            self.load_document(self.current_path, self.current_page - 1)
+
+    def next_page(self):
+        if self.current_path and self.current_page < self.total_pages - 1:
+            self.load_document(self.current_path, self.current_page + 1)
+
+
 class MergePage(QWidget):
     go_back = Signal()
 
@@ -223,15 +436,15 @@ class MergePage(QWidget):
         root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.setSpacing(0)
 
-        scroll = QScrollArea()
-        scroll.setObjectName("ContentScrollArea")
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll = QScrollArea()
+        self.scroll.setObjectName("ContentScrollArea")
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
-        content = QWidget()
-        content.setObjectName("ContentWidget")
-        self.content_layout = QVBoxLayout(content)
+        self.content_widget = QWidget()
+        self.content_widget.setObjectName("ContentWidget")
+        self.content_layout = QVBoxLayout(self.content_widget)
         self.content_layout.setContentsMargins(32, 28, 32, 28)
         self.content_layout.setSpacing(18)
 
@@ -248,6 +461,7 @@ class MergePage(QWidget):
         title.setObjectName("PageTitle")
         subtitle = QLabel("Gabungkan beberapa dokumen PDF menjadi satu file berurutan.")
         subtitle.setObjectName("PageSubtitle")
+        subtitle.setWordWrap(True)
         title_box.addWidget(title)
         title_box.addWidget(subtitle)
 
@@ -314,6 +528,14 @@ class MergePage(QWidget):
         self.clear_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.clear_btn.clicked.connect(self.clear_all)
 
+        self.toggle_preview_btn = QPushButton("Sembunyikan Pratinjau")
+        self.toggle_preview_btn.setObjectName("SecondaryButton")
+        self.toggle_preview_btn.setToolTip("Tampilkan atau sembunyikan panel pratinjau dokumen.")
+        self.toggle_preview_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.toggle_preview_btn.setCheckable(True)
+        self.toggle_preview_btn.setChecked(True)
+        self.toggle_preview_btn.toggled.connect(self.on_toggle_preview)
+
         self.toolbar.addWidget(self.add_btn)
         self.toolbar.addWidget(self.sort_btn)
         self.toolbar.addWidget(self.up_btn)
@@ -321,6 +543,7 @@ class MergePage(QWidget):
         self.toolbar.addWidget(self.del_btn)
         self.toolbar.addWidget(self.clear_btn)
         self.toolbar.addStretch()
+        self.toolbar.addWidget(self.toggle_preview_btn)
         self.content_layout.addLayout(self.toolbar)
 
         # Informational Hint for Drag & Drop (Formal text)
@@ -328,6 +551,7 @@ class MergePage(QWidget):
             "Petunjuk: Seret baris pada tabel untuk mengatur urutan dokumen, atau tarik file PDF langsung ke tabel."
         )
         self.hint_label.setObjectName("TableHint")
+        self.hint_label.setWordWrap(True)
         self.content_layout.addWidget(self.hint_label)
 
         # Table of Added Files with Drag-and-Drop Reordering
@@ -358,7 +582,17 @@ class MergePage(QWidget):
 
         self.table.rows_reordered.connect(self.on_rows_reordered)
         self.table.files_dropped.connect(self.add_files)
-        self.content_layout.addWidget(self.table)
+        self.table.itemSelectionChanged.connect(self.on_table_selection_changed)
+
+        # Side Preview Panel
+        self.preview_panel = PdfPreviewPanel()
+
+        # Horizontal layout combining Table and Preview Panel
+        self.table_preview_layout = QHBoxLayout()
+        self.table_preview_layout.setSpacing(16)
+        self.table_preview_layout.addWidget(self.table, stretch=1)
+        self.table_preview_layout.addWidget(self.preview_panel, stretch=0)
+        self.content_layout.addLayout(self.table_preview_layout)
 
         # Progress & Status Bar
         self.progress_bar = QProgressBar()
@@ -368,6 +602,7 @@ class MergePage(QWidget):
 
         self.status_label = QLabel("Tambahkan minimal 2 file PDF untuk mulai menggabungkan.")
         self.status_label.setObjectName("StatusLabel")
+        self.status_label.setWordWrap(True)
         self.content_layout.addWidget(self.status_label)
 
         # Bottom Action Bar
@@ -391,12 +626,17 @@ class MergePage(QWidget):
         bottom_bar.addStretch()
         self.content_layout.addLayout(bottom_bar)
 
-        scroll.setWidget(content)
-        root_layout.addWidget(scroll)
+        self.scroll.setWidget(self.content_widget)
+        root_layout.addWidget(self.scroll)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
         width = event.size().width()
+
+        # Constrain content width to scroll viewport to prevent horizontal stretching
+        if hasattr(self, "scroll") and hasattr(self, "content_widget"):
+            self.content_widget.setMaximumWidth(self.scroll.viewport().width())
+
         # Responsive padding & compact toolbar for narrower windows
         if width < 640:
             self.content_layout.setContentsMargins(16, 16, 16, 16)
@@ -406,6 +646,9 @@ class MergePage(QWidget):
             self.down_btn.setText("↓")
             self.del_btn.setText("Hapus")
             self.clear_btn.setText("Kosongkan")
+            self.toggle_preview_btn.setText("Tutup" if self.toggle_preview_btn.isChecked() else "Pratinjau")
+            if hasattr(self, "preview_panel"):
+                self.preview_panel.setFixedWidth(240)
         else:
             self.content_layout.setContentsMargins(32, 28, 32, 28)
             self.content_layout.setSpacing(18)
@@ -414,6 +657,29 @@ class MergePage(QWidget):
             self.down_btn.setText("↓ Turun")
             self.del_btn.setText("Hapus Pilihan")
             self.clear_btn.setText("Hapus Semua")
+            self.toggle_preview_btn.setText("Sembunyikan Pratinjau" if self.toggle_preview_btn.isChecked() else "Lihat Pratinjau")
+            if hasattr(self, "preview_panel"):
+                self.preview_panel.setFixedWidth(300)
+
+    def on_toggle_preview(self, checked: bool):
+        self.preview_panel.setVisible(checked)
+        if self.width() < 640:
+            self.toggle_preview_btn.setText("Tutup" if checked else "Pratinjau")
+        else:
+            self.toggle_preview_btn.setText("Sembunyikan Pratinjau" if checked else "Lihat Pratinjau")
+
+    def on_table_selection_changed(self):
+        if not hasattr(self, "preview_panel"):
+            return
+        selected_rows = sorted(set(index.row() for index in self.table.selectedIndexes()))
+        if selected_rows:
+            row = selected_rows[0]
+            if 0 <= row < len(self.file_list):
+                path = self.file_list[row]["path"]
+                if self.preview_panel.current_path != path:
+                    self.preview_panel.load_document(path)
+                return
+        self.preview_panel.clear_preview()
 
     def setup_sort_menu(self):
         sort_menu = QMenu(self)
@@ -570,6 +836,17 @@ class MergePage(QWidget):
             self.merge_btn.setEnabled(False)
             self.status_label.setText("Tambahkan minimal 2 file PDF untuk mulai menggabungkan.")
 
+        # Update preview selection
+        if hasattr(self, "preview_panel"):
+            if self.file_list:
+                selected_rows = sorted(set(index.row() for index in self.table.selectedIndexes()))
+                if not selected_rows:
+                    self.table.selectRow(0)
+                else:
+                    self.on_table_selection_changed()
+            else:
+                self.preview_panel.clear_preview()
+
     def on_rows_reordered(self, selected_rows: List[int], target_row: int):
         selected_indices = sorted(set(selected_rows))
         if not selected_indices:
@@ -668,6 +945,8 @@ class MergePage(QWidget):
             return
         self.file_list.clear()
         self.refresh_table()
+        if hasattr(self, "preview_panel"):
+            self.preview_panel.clear_preview()
 
     def start_merge(self):
         if len(self.file_list) < 2:
