@@ -22,35 +22,51 @@ class FeatureCard(QFrame):
         super().__init__()
         self.title = title
         self.setObjectName("FeatureCard")
-        self.setMinimumHeight(135)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.setMinimumHeight(84)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 20, 16, 20)
-        layout.setSpacing(12)
-        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(16, 14, 18, 14)
+        layout.setSpacing(14)
+        layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
         icon_label = QLabel()
         icon_label.setObjectName("FeatureIcon")
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        icon_label.setFixedSize(72, 72)
+        icon_label.setFixedSize(54, 54)
 
-        feat_pix = get_feature_icon(title, size=72)
+        feat_pix = get_feature_icon(title, size=54)
         if not feat_pix.isNull():
             icon_label.setPixmap(feat_pix)
         else:
             icon_label.setText("PDF")
 
+        text_layout = QVBoxLayout()
+        text_layout.setSpacing(3)
+        text_layout.setContentsMargins(0, 0, 0, 0)
+        text_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+
         title_label = QLabel(title)
         title_label.setObjectName("FeatureTitle")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        text_layout.addWidget(title_label)
+
+        if description:
+            desc_label = QLabel(description)
+            desc_label.setObjectName("FeatureDescription")
+            desc_label.setWordWrap(True)
+            text_layout.addWidget(desc_label)
+
+        arrow_label = QLabel("→")
+        arrow_label.setObjectName("FeatureArrow")
 
         tip_text = tooltip or description or title
         self.setToolTip(tip_text)
 
-        layout.addWidget(icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(title_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(icon_label)
+        layout.addLayout(text_layout, 1)
+        layout.addWidget(arrow_label)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -137,10 +153,10 @@ class HomePage(QWidget):
 
         features = [
             ("Merge PDF", "Gabungkan beberapa file PDF.", "Gabungkan beberapa PDF menjadi satu file."),
-            ("Split PDF", "Pisahkan halaman sesuai kebutuhan.", "Pisahkan PDF berdasarkan halaman."),
-            ("Compress PDF", "Kurangi ukuran dokumen.", "Kompres PDF dengan pilihan kualitas."),
+            ("Split PDF", "Pisahkan halaman dokumen PDF.", "Pisahkan PDF berdasarkan halaman."),
+            ("Compress PDF", "Kurangi ukuran file dokumen.", "Kompres PDF dengan pilihan kualitas."),
             ("Convert to PNG", "Ekspor halaman menjadi gambar.", "Ekspor halaman PDF menjadi PNG."),
-            ("Crop PDF", "Atur area halaman yang terlihat.", "Potong area halaman PDF sesuai pilihan."),
+            ("Crop PDF", "Potong area margin halaman.", "Potong area halaman PDF sesuai pilihan."),
         ]
 
         self.cards: list[FeatureCard] = []
@@ -165,15 +181,7 @@ class HomePage(QWidget):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         available_width = event.size().width() - 64  # minus margins
-        if available_width < 460:
-            target_cols = 1
-        elif available_width < 820:
-            target_cols = 2
-        elif available_width < 1200:
-            target_cols = 3
-        else:
-            target_cols = 4
-
+        target_cols = 1 if available_width < 540 else 2
         self.rearrange_grid(target_cols)
 
     def rearrange_grid(self, cols: int):

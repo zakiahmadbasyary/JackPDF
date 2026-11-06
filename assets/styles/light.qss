@@ -155,7 +155,18 @@ QLabel#FeatureTitle {
 
 QLabel#FeatureDescription {
     color: #5D6B7D;
-    font-size: 9pt;
+    font-size: 8.5pt;
+}
+
+QLabel#FeatureArrow {
+    color: #98A6B8;
+    font-size: 14pt;
+    font-weight: 700;
+    padding-right: 2px;
+}
+
+QFrame#FeatureCard:hover QLabel#FeatureArrow {
+    color: #1D6FEA;
 }
 
 QPushButton#CardAction {

@@ -35,17 +35,15 @@ def test_responsive_grid_reflow():
     home.resizeEvent(QResizeEvent(QSize(400, 600), QSize(800, 600)))
     assert home.current_cols == 1
 
-    # Medium size -> 2 columns
+    # Standard & Large desktop sizes -> 2 columns (Option 1A 2-column layout)
     home.resizeEvent(QResizeEvent(QSize(750, 600), QSize(400, 600)))
     assert home.current_cols == 2
 
-    # Large size -> 3 columns
     home.resizeEvent(QResizeEvent(QSize(1150, 700), QSize(750, 600)))
-    assert home.current_cols == 3
+    assert home.current_cols == 2
 
-    # Extra large size -> 4 columns
     home.resizeEvent(QResizeEvent(QSize(1600, 900), QSize(1150, 700)))
-    assert home.current_cols == 4
+    assert home.current_cols == 2
 
 
 def test_feature_card_clickable():
