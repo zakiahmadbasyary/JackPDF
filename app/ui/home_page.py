@@ -18,24 +18,25 @@ from app.utils.icon_utils import get_feature_icon
 class FeatureCard(QFrame):
     selected = Signal(str)
 
-    def __init__(self, title: str, description: str, tooltip: str):
+    def __init__(self, title: str, description: str = "", tooltip: str = ""):
         super().__init__()
         self.title = title
         self.setObjectName("FeatureCard")
-        self.setMinimumHeight(140)
+        self.setMinimumHeight(135)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(18, 16, 18, 16)
-        layout.setSpacing(10)
+        layout.setContentsMargins(16, 20, 16, 20)
+        layout.setSpacing(12)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         icon_label = QLabel()
         icon_label.setObjectName("FeatureIcon")
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        icon_label.setFixedSize(48, 48)
+        icon_label.setFixedSize(72, 72)
 
-        feat_pix = get_feature_icon(title, size=48)
+        feat_pix = get_feature_icon(title, size=72)
         if not feat_pix.isNull():
             icon_label.setPixmap(feat_pix)
         else:
@@ -43,21 +44,13 @@ class FeatureCard(QFrame):
 
         title_label = QLabel(title)
         title_label.setObjectName("FeatureTitle")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        description_label = QLabel(description)
-        description_label.setObjectName("FeatureDescription")
-        description_label.setWordWrap(True)
+        tip_text = tooltip or description or title
+        self.setToolTip(tip_text)
 
-        action = QPushButton("Buka tool  →")
-        action.setObjectName("CardAction")
-        action.setToolTip(tooltip)
-        action.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
-
-        self.setToolTip(tooltip)
-        layout.addWidget(icon_label)
-        layout.addWidget(title_label)
-        layout.addWidget(description_label, 1)
-        layout.addWidget(action, alignment=Qt.AlignmentFlag.AlignLeft)
+        layout.addWidget(icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
