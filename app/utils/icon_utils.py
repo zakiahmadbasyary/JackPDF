@@ -3,9 +3,9 @@ from typing import Optional
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon, QPainter, QPainterPath, QPixmap
 
-ICONS_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "assets", "icons")
-)
+from app.utils.resource_utils import get_resource_path
+
+ICONS_DIR = get_resource_path(os.path.join("assets", "icons"))
 
 FEATURE_ICON_FILES = {
     "Merge PDF": "icon merge.png",
@@ -74,6 +74,9 @@ def get_app_logo(size: int = 32) -> QPixmap:
 
 def get_app_icon() -> QIcon:
     """Get the QIcon for the application."""
+    ico_path = get_icon_path("jackpdf.ico")
+    if os.path.exists(ico_path):
+        return QIcon(ico_path)
     logo_path = get_icon_path("logo.png")
     if os.path.exists(logo_path):
         return QIcon(logo_path)

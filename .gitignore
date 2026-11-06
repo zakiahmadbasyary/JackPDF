@@ -34,3 +34,6 @@ env/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Packaging Output
+installer/
