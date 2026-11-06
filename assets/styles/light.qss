@@ -461,7 +461,7 @@ QLabel#BadgeWarning {
 }
 
 /* --------------------------------------------------------------------------
-   Split Multi-Range Controls
+   Split Multi-Range & Page Selection Controls
    -------------------------------------------------------------------------- */
 QCheckBox#StyledCheckBox {
     color: #111B29;
@@ -473,6 +473,28 @@ QCheckBox#StyledCheckBox {
 QCheckBox#StyledCheckBox::indicator {
     width: 17px;
     height: 17px;
+}
+
+QCheckBox#PageChipCheckBox {
+    background: #FFFFFF;
+    border: 1px solid #DCE3EC;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 8.5pt;
+    font-weight: 500;
+    color: #263445;
+}
+
+QCheckBox#PageChipCheckBox:hover {
+    border-color: #278BFA;
+    background: #F0F6FF;
+}
+
+QCheckBox#PageChipCheckBox:checked {
+    background: #DCEBFF;
+    border: 1.5px solid #1D6FEA;
+    color: #1557B0;
+    font-weight: 600;
 }
 
 QFrame#RangeRow {
