@@ -45,8 +45,10 @@ from app.services.crop_service import (
     get_default_output_filename,
     get_default_output_path,
 )
+from app.services.settings_service import get_effective_output_dir, get_settings_service
 from app.utils.file_utils import (
     format_file_size,
+    get_safe_destination_path,
     open_file_with_default_app,
     open_in_file_manager,
 )
@@ -975,6 +977,13 @@ class CropPage(QWidget):
         self.scroll.setWidget(self.content_widget)
         root_layout.addWidget(self.scroll)
 
+        # Connect settings update listener
+        get_settings_service().settings_changed.connect(self._on_settings_changed)
+
+    def _on_settings_changed(self):
+        if self.current_file:
+            self.output_dir_edit.setText(get_effective_output_dir(self.current_file))
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
         width = event.size().width()
@@ -1004,9 +1013,7 @@ class CropPage(QWidget):
             self.load_pdf_file(file_path)
 
     def browse_output_dir(self):
-        start_dir = self.output_dir_edit.text().strip() or (
-            os.path.dirname(self.current_file) if self.current_file else ""
-        )
+        start_dir = self.output_dir_edit.text().strip() or get_effective_output_dir(self.current_file)
         chosen_dir = QFileDialog.getExistingDirectory(
             self,
             "Pilih Folder Penyimpanan File Hasil",
@@ -1065,7 +1072,7 @@ class CropPage(QWidget):
 
         # Output Defaults
         self.output_filename_edit.setText(get_default_output_filename(norm_path))
-        self.output_dir_edit.setText(os.path.dirname(norm_path))
+        self.output_dir_edit.setText(get_effective_output_dir(norm_path))
 
         # Reset Margins
         self.current_margins = CropMargins(0.0, 0.0, 0.0, 0.0)
@@ -1362,18 +1369,29 @@ class CropPage(QWidget):
             )
             return
 
-        # Overwrite confirmation
+        # Overwrite confirmation or auto-numbering based on settings
+        settings = get_settings_service()
+        conflict_action = settings.get("conflict_action", "confirm")
+
         if os.path.exists(out_path):
-            confirm = QMessageBox.question(
-                self,
-                "Konfirmasi Penimpaan File",
-                f"File '{os.path.basename(out_path)}' sudah ada di folder tujuan.\n"
-                "Apakah Anda ingin menimpa file tersebut?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
-                QMessageBox.StandardButton.Cancel,
-            )
-            if confirm != QMessageBox.StandardButton.Yes:
-                return
+            if conflict_action == "auto_number":
+                folder = self.output_dir_edit.text().strip()
+                filename = self.output_filename_edit.text().strip()
+                if not filename.lower().endswith(".pdf"):
+                    filename += ".pdf"
+                out_path = get_safe_destination_path(folder, filename)
+                self.output_filename_edit.setText(os.path.basename(out_path))
+            else:
+                confirm = QMessageBox.question(
+                    self,
+                    "Konfirmasi Penimpaan File",
+                    f"File '{os.path.basename(out_path)}' sudah ada di folder tujuan.\n"
+                    "Apakah Anda ingin menimpa file tersebut?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+                    QMessageBox.StandardButton.Cancel,
+                )
+                if confirm != QMessageBox.StandardButton.Yes:
+                    return
 
         # Start background worker
         self.set_ui_busy(True)
@@ -1438,6 +1456,13 @@ class CropPage(QWidget):
             self.result_details_label.setText(status_text)
             self.result_card.setVisible(True)
             self.status_label.setText(f"Selesai! File tersimpan di: {self.last_output_file}")
+
+            # Check post-processing settings
+            settings = get_settings_service()
+            if settings.get("auto_open_folder"):
+                self.open_output_folder()
+            if settings.get("auto_open_file"):
+                self.open_output_file()
         else:
             self.status_label.setText("Proses crop gagal.")
             QMessageBox.critical(self, "Crop Gagal", message)

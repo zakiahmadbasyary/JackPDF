@@ -27,6 +27,7 @@ from app.services.convert_png_service import (
     get_output_filename,
     parse_page_selection,
 )
+from app.services.settings_service import get_effective_output_dir, get_settings_service
 from app.ui.pages.merge_page import PdfPreviewPanel
 from app.utils.file_utils import format_file_size, open_in_file_manager
 from app.utils.icon_utils import get_feature_icon
@@ -488,6 +489,36 @@ class ConvertPngPage(QWidget):
         self.scroll.setWidget(self.content_widget)
         root_layout.addWidget(self.scroll)
 
+        # Apply default settings & listen for changes
+        self._apply_settings_defaults()
+        get_settings_service().settings_changed.connect(self._on_settings_changed)
+
+    def _apply_settings_defaults(self):
+        settings = get_settings_service()
+        dpi = settings.get("default_png_dpi", 200)
+        if dpi == 150:
+            self.radio_dpi_150.setChecked(True)
+        elif dpi == 300:
+            self.radio_dpi_300.setChecked(True)
+        elif dpi == 200:
+            self.radio_dpi_200.setChecked(True)
+        else:
+            self.radio_dpi_custom.setChecked(True)
+            self.custom_dpi_spin.setValue(int(dpi))
+
+        color = settings.get("default_png_color", "rgb")
+        if color == "grayscale":
+            self.radio_color_gray.setChecked(True)
+        else:
+            self.radio_color_rgb.setChecked(True)
+
+    def _on_settings_changed(self):
+        if self.current_file:
+            effective_parent = get_effective_output_dir(self.current_file)
+            clean_base = os.path.splitext(os.path.basename(self.current_file))[0].strip(". ")
+            self.current_output_dir = os.path.join(effective_parent, f"{clean_base}_png")
+            self.output_dir_label.setText(self.current_output_dir)
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
         width = event.size().width()
@@ -522,9 +553,7 @@ class ConvertPngPage(QWidget):
             self.load_pdf_file(file_path)
 
     def browse_output_dir(self):
-        start_dir = self.current_output_dir or (
-            os.path.dirname(self.current_file) if self.current_file else ""
-        )
+        start_dir = self.current_output_dir or get_effective_output_dir(self.current_file)
         chosen_dir = QFileDialog.getExistingDirectory(
             self,
             "Pilih Folder Penyimpanan File PNG",
@@ -569,8 +598,10 @@ class ConvertPngPage(QWidget):
         self.current_password = password
         self.current_page_count = page_count
 
-        # Default output directory
-        self.current_output_dir = get_default_output_dir(norm_path)
+        # Default output directory respecting user settings
+        effective_parent = get_effective_output_dir(norm_path)
+        clean_base = os.path.splitext(os.path.basename(norm_path))[0].strip(". ")
+        self.current_output_dir = os.path.join(effective_parent, f"{clean_base}_png")
         self.output_dir_label.setText(self.current_output_dir)
 
         # Update info card
@@ -702,6 +733,9 @@ class ConvertPngPage(QWidget):
 
         # Check existing PNG pattern in output folder
         base_name = os.path.splitext(os.path.basename(self.current_file))[0]
+        settings = get_settings_service()
+        conflict_action = settings.get("conflict_action", "confirm")
+
         if os.path.exists(self.current_output_dir):
             existing_pngs = [
                 f
@@ -709,16 +743,27 @@ class ConvertPngPage(QWidget):
                 if f.lower().endswith(".png") and f.startswith(f"{base_name}_page-")
             ]
             if existing_pngs:
-                confirm = QMessageBox.question(
-                    self,
-                    "Konfirmasi Penimpaan File",
-                    f"Ditemukan {len(existing_pngs)} file PNG dengan nama serupa di folder tujuan.\n"
-                    "Apakah Anda ingin melanjutkan dan menimpa file yang sudah ada?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
-                    QMessageBox.StandardButton.Cancel,
-                )
-                if confirm != QMessageBox.StandardButton.Yes:
-                    return
+                if conflict_action == "auto_number":
+                    counter = 1
+                    candidate_dir = self.current_output_dir
+                    while os.path.exists(candidate_dir) and any(
+                        f.lower().endswith(".png") for f in os.listdir(candidate_dir)
+                    ):
+                        candidate_dir = f"{self.current_output_dir}_{counter:03d}"
+                        counter += 1
+                    self.current_output_dir = candidate_dir
+                    self.output_dir_label.setText(self.current_output_dir)
+                else:
+                    confirm = QMessageBox.question(
+                        self,
+                        "Konfirmasi Penimpaan File",
+                        f"Ditemukan {len(existing_pngs)} file PNG dengan nama serupa di folder tujuan.\n"
+                        "Apakah Anda ingin melanjutkan dan menimpa file yang sudah ada?",
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+                        QMessageBox.StandardButton.Cancel,
+                    )
+                    if confirm != QMessageBox.StandardButton.Yes:
+                        return
 
         # Start background worker
         self.set_ui_busy(True)
@@ -787,6 +832,10 @@ class ConvertPngPage(QWidget):
             self.status_label.setText(
                 f"Selesai! {total_success} file gambar PNG tersimpan di: {self.last_output_dir}"
             )
+
+            # Check auto open folder setting
+            if not is_cancelled and get_settings_service().get("auto_open_folder"):
+                self.open_output_folder()
         else:
             self.status_label.setText("Proses konversi gagal.")
             QMessageBox.critical(self, "Konversi Gagal", message)

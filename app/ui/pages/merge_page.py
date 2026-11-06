@@ -25,7 +25,13 @@ from PySide6.QtWidgets import (
 )
 
 from app.services.merge_service import merge_pdfs
-from app.utils.file_utils import format_file_size, open_in_file_manager
+from app.services.settings_service import get_effective_output_dir, get_settings_service
+from app.utils.file_utils import (
+    format_file_size,
+    get_safe_destination_path,
+    open_file_with_default_app,
+    open_in_file_manager,
+)
 from app.utils.icon_utils import get_feature_icon
 from app.utils.validators import validate_pdf_file
 from app.workers.pdf_worker import PdfTaskWorker
@@ -974,9 +980,14 @@ class MergePage(QWidget):
             QMessageBox.information(self, "Perhatian", "Pilih minimal 2 file PDF untuk digabungkan.")
             return
 
-        # Determine default directory from first input file
-        default_dir = os.path.dirname(self.file_list[0]["path"])
+        # Determine default directory according to user settings
+        source_dir = self.file_list[0]["path"] if self.file_list else None
+        default_dir = get_effective_output_dir(source_dir)
         default_save_path = os.path.join(default_dir, "JackPDF_Merged.pdf")
+
+        settings = get_settings_service()
+        if settings.get("conflict_action") == "auto_number":
+            default_save_path = get_safe_destination_path(default_dir, "JackPDF_Merged.pdf")
 
         save_path, _ = QFileDialog.getSaveFileName(
             self,
@@ -1030,26 +1041,33 @@ class MergePage(QWidget):
             self.status_label.setText(f"Selesai! Disimpan ke: {os.path.basename(output_path)}")
             self.open_folder_btn.setVisible(True)
 
-            msg_box = QMessageBox(self)
-            msg_box.setWindowTitle("Berhasil Menggabungkan PDF")
-            msg_box.setIcon(QMessageBox.Icon.Information)
-            msg_box.setText(f"<b>{message}</b>")
-            msg_box.setInformativeText(
-                f"Lokasi file:\n{output_path}\n\nApakah Anda ingin membuka folder penyimpanan sekarang?"
-            )
-            open_btn = msg_box.addButton("Buka Folder Hasil", QMessageBox.ButtonRole.AcceptRole)
-            open_btn.setObjectName("PrimaryButton")
-            open_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-
-            close_btn = msg_box.addButton("Tutup", QMessageBox.ButtonRole.RejectRole)
-            close_btn.setObjectName("SecondaryButton")
-            close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-
-            msg_box.setDefaultButton(open_btn)
-            msg_box.exec()
-
-            if msg_box.clickedButton() == open_btn:
+            settings = get_settings_service()
+            if settings.get("auto_open_folder"):
                 self.open_output_folder()
+            if settings.get("auto_open_file"):
+                open_file_with_default_app(output_path)
+
+            if not settings.get("auto_open_folder") and not settings.get("auto_open_file"):
+                msg_box = QMessageBox(self)
+                msg_box.setWindowTitle("Berhasil Menggabungkan PDF")
+                msg_box.setIcon(QMessageBox.Icon.Information)
+                msg_box.setText(f"<b>{message}</b>")
+                msg_box.setInformativeText(
+                    f"Lokasi file:\n{output_path}\n\nApakah Anda ingin membuka folder penyimpanan sekarang?"
+                )
+                open_btn = msg_box.addButton("Buka Folder Hasil", QMessageBox.ButtonRole.AcceptRole)
+                open_btn.setObjectName("PrimaryButton")
+                open_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+
+                close_btn = msg_box.addButton("Tutup", QMessageBox.ButtonRole.RejectRole)
+                close_btn.setObjectName("SecondaryButton")
+                close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+
+                msg_box.setDefaultButton(open_btn)
+                msg_box.exec()
+
+                if msg_box.clickedButton() == open_btn:
+                    self.open_output_folder()
         else:
             self.status_label.setText("Penggabungan gagal.")
             QMessageBox.critical(self, "Penggabungan Gagal", message)

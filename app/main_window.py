@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.ui.dialogs.settings_dialog import SettingsDialog
 from app.ui.home_page import HomePage
 from app.ui.pages.compress_page import CompressPage
 from app.ui.pages.convert_png_page import ConvertPngPage
@@ -116,6 +117,12 @@ class MainWindow(QMainWindow):
 
         sidebar_layout.addStretch()
 
+        self.sidebar_settings_btn = QPushButton("  ⚙  Pengaturan")
+        self.sidebar_settings_btn.setObjectName("NavButton")
+        self.sidebar_settings_btn.setToolTip("Buka pengaturan JackPDF.")
+        self.sidebar_settings_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.sidebar_settings_btn.clicked.connect(self.open_settings)
+        sidebar_layout.addWidget(self.sidebar_settings_btn)
 
         # Content Pages Stack
         self.content = QStackedWidget()
@@ -129,6 +136,7 @@ class MainWindow(QMainWindow):
 
         # Connect Navigation
         self.home_page.feature_selected.connect(self.on_feature_selected)
+        self.home_page.settings_clicked.connect(self.open_settings)
         self.merge_page.go_back.connect(self.show_home)
         self.split_page.go_back.connect(self.show_home)
         self.compress_page.go_back.connect(self.show_home)
@@ -180,6 +188,10 @@ class MainWindow(QMainWindow):
     def show_crop(self):
         self.content.setCurrentWidget(self.crop_page)
         self._set_active_nav("Crop PDF")
+
+    def open_settings(self):
+        dialog = SettingsDialog(self)
+        dialog.exec()
 
     def on_feature_selected(self, feature_name: str):
         if feature_name == "Merge PDF":

@@ -772,3 +772,67 @@ QLabel#PreviewSummaryBadge {
     padding: 6px 10px;
     margin-top: 4px;
 }
+
+/* --------------------------------------------------------------------------
+   Settings Dialog & Tabs
+   -------------------------------------------------------------------------- */
+QTabWidget#SettingsTabs::pane {
+    border: 1px solid #DCE3EC;
+    border-radius: 10px;
+    background: #FFFFFF;
+    top: -1px;
+}
+
+QTabBar::tab {
+    background: #EEF2F7;
+    color: #5D6B7D;
+    font-size: 9pt;
+    font-weight: 600;
+    padding: 7px 12px;
+    margin-right: 4px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border: 1px solid transparent;
+}
+
+QTabBar::tab:selected {
+    background: #FFFFFF;
+    color: #1D6FEA;
+    border: 1px solid #DCE3EC;
+    border-bottom: 1px solid #FFFFFF;
+}
+
+QTabBar::tab:hover:!selected {
+    background: #E2E8F0;
+    color: #263445;
+}
+
+QComboBox#StyledComboBox {
+    background: #FFFFFF;
+    border: 1px solid #DCE3EC;
+    border-radius: 8px;
+    padding: 6px 12px;
+    color: #111B29;
+    font-size: 9pt;
+    min-height: 22px;
+}
+
+QComboBox#StyledComboBox:focus {
+    border: 1.5px solid #278BFA;
+}
+
+QComboBox#StyledComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 24px;
+    border-left: none;
+}
+
+QComboBox#StyledComboBox QAbstractItemView {
+    background: #FFFFFF;
+    border: 1px solid #DCE3EC;
+    border-radius: 6px;
+    selection-background-color: #DCEBFF;
+    selection-color: #1557B0;
+    padding: 4px;
+}

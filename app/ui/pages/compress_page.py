@@ -18,9 +18,11 @@ from PySide6.QtWidgets import (
 )
 
 from app.services.compress_service import PRESET_CONFIGS, compress_pdf
+from app.services.settings_service import get_effective_output_dir, get_settings_service
 from app.ui.pages.merge_page import PdfPreviewPanel
 from app.utils.file_utils import (
     format_file_size,
+    get_safe_destination_path,
     open_file_with_default_app,
     open_in_file_manager,
 )
@@ -529,6 +531,21 @@ class CompressPage(QWidget):
         self.scroll.setWidget(self.content_widget)
         root_layout.addWidget(self.scroll)
 
+        # Apply settings defaults & connect listener
+        self._apply_settings_defaults()
+        get_settings_service().settings_changed.connect(self._on_settings_changed)
+
+    def _apply_settings_defaults(self):
+        settings = get_settings_service()
+        preset = settings.get("default_compress_preset", "recommended")
+        if preset in self.preset_cards:
+            self.select_preset(preset)
+
+    def _on_settings_changed(self):
+        if self.current_file:
+            self.current_output_dir = get_effective_output_dir(self.current_file)
+            self.output_dir_label.setText(self.current_output_dir)
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
         width = event.size().width()
@@ -568,9 +585,7 @@ class CompressPage(QWidget):
             self.load_pdf_file(file_path)
 
     def browse_output_dir(self):
-        start_dir = self.current_output_dir or (
-            os.path.dirname(self.current_file) if self.current_file else ""
-        )
+        start_dir = self.current_output_dir or get_effective_output_dir(self.current_file)
         chosen_dir = QFileDialog.getExistingDirectory(
             self,
             "Pilih Folder Penyimpanan File Hasil",
@@ -621,8 +636,11 @@ class CompressPage(QWidget):
         default_output_name = f"{base_name}_compressed.pdf"
         self.output_name_edit.setText(default_output_name)
 
-        self.current_output_dir = os.path.dirname(norm_path)
+        self.current_output_dir = get_effective_output_dir(norm_path)
         self.output_dir_label.setText(self.current_output_dir)
+
+        # Apply default preset from settings
+        self._apply_settings_defaults()
 
         # Update info card
         size_bytes = os.path.getsize(norm_path)
@@ -677,17 +695,24 @@ class CompressPage(QWidget):
             )
             return
 
-        # Check if target already exists and ask explicit confirmation
+        # Check if target already exists and handle conflict according to settings
+        settings = get_settings_service()
+        conflict_action = settings.get("conflict_action", "confirm")
+
         if os.path.exists(target_path):
-            confirm = QMessageBox.question(
-                self,
-                "Konfirmasi Penimpaan File",
-                f"File '{out_name}' sudah ada di folder tujuan.\nApakah Anda ingin menggantinya?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
-                QMessageBox.StandardButton.Cancel,
-            )
-            if confirm != QMessageBox.StandardButton.Yes:
-                return
+            if conflict_action == "auto_number":
+                target_path = get_safe_destination_path(self.current_output_dir, out_name)
+                self.output_name_edit.setText(os.path.basename(target_path))
+            else:
+                confirm = QMessageBox.question(
+                    self,
+                    "Konfirmasi Penimpaan File",
+                    f"File '{out_name}' sudah ada di folder tujuan.\nApakah Anda ingin menggantinya?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+                    QMessageBox.StandardButton.Cancel,
+                )
+                if confirm != QMessageBox.StandardButton.Yes:
+                    return
 
         # Check for digital signatures
         if check_pdf_signatures(self.current_file, self.current_password):
@@ -765,6 +790,13 @@ class CompressPage(QWidget):
             if self.last_compressed_file and os.path.exists(self.last_compressed_file):
                 self.preview_panel.load_document(self.last_compressed_file, page_num=0)
                 self.preview_panel.set_summary_badge("Hasil Kompresi")
+
+            # Check post-processing settings
+            settings = get_settings_service()
+            if settings.get("auto_open_folder"):
+                self.open_output_folder()
+            if settings.get("auto_open_file"):
+                self.open_compressed_file()
         else:
             self.status_label.setText("Proses kompresi gagal.")
             QMessageBox.critical(self, "Kompresi Gagal", message)

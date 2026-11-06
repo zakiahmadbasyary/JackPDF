@@ -76,6 +76,7 @@ class FeatureCard(QFrame):
 
 class HomePage(QWidget):
     feature_selected = Signal(str)
+    settings_clicked = Signal()
 
     def __init__(self):
         super().__init__()
@@ -115,11 +116,13 @@ class HomePage(QWidget):
         header.addLayout(heading)
         header.addStretch()
 
-        settings = QPushButton("⚙")
-        settings.setObjectName("IconButton")
-        settings.setToolTip("Pengaturan JackPDF.")
-        settings.setFixedSize(40, 40)
-        header.addWidget(settings)
+        self.settings_btn = QPushButton("⚙")
+        self.settings_btn.setObjectName("IconButton")
+        self.settings_btn.setToolTip("Pengaturan JackPDF.")
+        self.settings_btn.setFixedSize(40, 40)
+        self.settings_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.settings_btn.clicked.connect(self.settings_clicked.emit)
+        header.addWidget(self.settings_btn)
 
         self.layout.addLayout(header)
 
