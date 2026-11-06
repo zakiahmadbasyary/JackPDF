@@ -658,10 +658,6 @@ class MergePage(QWidget):
         super().resizeEvent(event)
         width = event.size().width()
 
-        # Constrain content width to scroll viewport to prevent horizontal stretching
-        if hasattr(self, "scroll") and hasattr(self, "content_widget"):
-            self.content_widget.setMaximumWidth(self.scroll.viewport().width())
-
         # Responsive padding & compact toolbar for narrower windows
         if width < 640:
             self.content_layout.setContentsMargins(16, 16, 16, 16)
