@@ -339,7 +339,8 @@ QHeaderView::section {
    Inputs, Radios & Sliders
    -------------------------------------------------------------------------- */
 QLineEdit#StyledInput,
-QSpinBox#StyledSpinBox {
+QSpinBox#StyledSpinBox,
+QDoubleSpinBox#StyledSpinBox {
     background: #FFFFFF;
     border: 1px solid #DCE3EC;
     border-radius: 8px;
@@ -348,7 +349,8 @@ QSpinBox#StyledSpinBox {
 }
 
 QLineEdit#StyledInput:focus,
-QSpinBox#StyledSpinBox:focus {
+QSpinBox#StyledSpinBox:focus,
+QDoubleSpinBox#StyledSpinBox:focus {
     border: 1.5px solid #278BFA;
     background: #FFFFFF;
 }

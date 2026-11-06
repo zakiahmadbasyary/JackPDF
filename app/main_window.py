@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 from app.ui.home_page import HomePage
 from app.ui.pages.compress_page import CompressPage
 from app.ui.pages.convert_png_page import ConvertPngPage
+from app.ui.pages.crop_page import CropPage
 from app.ui.pages.merge_page import MergePage
 from app.ui.pages.split_page import SplitPage
 from app.utils.icon_utils import get_app_icon, get_app_logo, get_feature_icon
@@ -83,7 +84,7 @@ class MainWindow(QMainWindow):
             ("Split PDF", "Pisahkan PDF berdasarkan halaman.", True),
             ("Compress PDF", "Kurangi ukuran file PDF.", True),
             ("Convert to PNG", "Ekspor halaman PDF menjadi gambar PNG.", True),
-            ("Crop PDF", "Pilih area halaman PDF yang ingin dipotong.", False),
+            ("Crop PDF", "Pilih area halaman PDF yang ingin dipotong.", True),
         ]
 
         for label, tooltip, is_active in nav_items:
@@ -107,6 +108,8 @@ class MainWindow(QMainWindow):
                 button.clicked.connect(self.show_compress)
             elif label == "Convert to PNG":
                 button.clicked.connect(self.show_convert_png)
+            elif label == "Crop PDF":
+                button.clicked.connect(self.show_crop)
 
             self.nav_buttons[label] = button
             sidebar_layout.addWidget(button)
@@ -122,6 +125,7 @@ class MainWindow(QMainWindow):
         self.split_page = SplitPage()
         self.compress_page = CompressPage()
         self.convert_png_page = ConvertPngPage()
+        self.crop_page = CropPage()
 
         # Connect Navigation
         self.home_page.feature_selected.connect(self.on_feature_selected)
@@ -129,12 +133,14 @@ class MainWindow(QMainWindow):
         self.split_page.go_back.connect(self.show_home)
         self.compress_page.go_back.connect(self.show_home)
         self.convert_png_page.go_back.connect(self.show_home)
+        self.crop_page.go_back.connect(self.show_home)
 
         self.content.addWidget(self.home_page)         # index 0
         self.content.addWidget(self.merge_page)        # index 1
         self.content.addWidget(self.split_page)        # index 2
         self.content.addWidget(self.compress_page)     # index 3
         self.content.addWidget(self.convert_png_page)  # index 4
+        self.content.addWidget(self.crop_page)         # index 5
 
         root_layout.addWidget(sidebar)
         root_layout.addWidget(self.content, 1)
@@ -171,6 +177,10 @@ class MainWindow(QMainWindow):
         self.content.setCurrentWidget(self.convert_png_page)
         self._set_active_nav("Convert to PNG")
 
+    def show_crop(self):
+        self.content.setCurrentWidget(self.crop_page)
+        self._set_active_nav("Crop PDF")
+
     def on_feature_selected(self, feature_name: str):
         if feature_name == "Merge PDF":
             self.show_merge()
@@ -180,5 +190,7 @@ class MainWindow(QMainWindow):
             self.show_compress()
         elif feature_name == "Convert to PNG":
             self.show_convert_png()
+        elif feature_name == "Crop PDF":
+            self.show_crop()
         else:
             print(f"Fitur '{feature_name}' akan segera hadir.")
