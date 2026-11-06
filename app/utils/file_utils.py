@@ -51,3 +51,23 @@ def open_in_file_manager(path: str) -> bool:
             return True
     except Exception:
         return False
+
+
+def open_file_with_default_app(path: str) -> bool:
+    """Open a file directly with the system's default application."""
+    try:
+        norm_path = os.path.normpath(path)
+        if not os.path.exists(norm_path):
+            return False
+
+        if sys.platform == "win32":
+            os.startfile(norm_path)
+            return True
+        elif sys.platform == "darwin":
+            subprocess.run(["open", norm_path], check=False)
+            return True
+        else:
+            subprocess.run(["xdg-open", norm_path], check=False)
+            return True
+    except Exception:
+        return False

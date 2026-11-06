@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.ui.home_page import HomePage
+from app.ui.pages.compress_page import CompressPage
 from app.ui.pages.merge_page import MergePage
 from app.ui.pages.split_page import SplitPage
 from app.utils.icon_utils import get_app_icon, get_app_logo, get_feature_icon
@@ -79,7 +80,7 @@ class MainWindow(QMainWindow):
         nav_items = [
             ("Merge PDF", "Gabungkan beberapa PDF menjadi satu file.", True),
             ("Split PDF", "Pisahkan PDF berdasarkan halaman.", True),
-            ("Compress PDF", "Kurangi ukuran file PDF.", False),
+            ("Compress PDF", "Kurangi ukuran file PDF.", True),
             ("Convert to PNG", "Ekspor halaman PDF menjadi gambar PNG.", False),
             ("Crop PDF", "Pilih area halaman PDF yang ingin dipotong.", False),
         ]
@@ -101,6 +102,8 @@ class MainWindow(QMainWindow):
                 button.clicked.connect(self.show_merge)
             elif label == "Split PDF":
                 button.clicked.connect(self.show_split)
+            elif label == "Compress PDF":
+                button.clicked.connect(self.show_compress)
 
             self.nav_buttons[label] = button
             sidebar_layout.addWidget(button)
@@ -114,15 +117,18 @@ class MainWindow(QMainWindow):
         self.home_page = HomePage()
         self.merge_page = MergePage()
         self.split_page = SplitPage()
+        self.compress_page = CompressPage()
 
         # Connect Navigation
         self.home_page.feature_selected.connect(self.on_feature_selected)
         self.merge_page.go_back.connect(self.show_home)
         self.split_page.go_back.connect(self.show_home)
+        self.compress_page.go_back.connect(self.show_home)
 
-        self.content.addWidget(self.home_page)   # index 0
-        self.content.addWidget(self.merge_page)  # index 1
-        self.content.addWidget(self.split_page)  # index 2
+        self.content.addWidget(self.home_page)      # index 0
+        self.content.addWidget(self.merge_page)     # index 1
+        self.content.addWidget(self.split_page)     # index 2
+        self.content.addWidget(self.compress_page)  # index 3
 
         root_layout.addWidget(sidebar)
         root_layout.addWidget(self.content, 1)
@@ -151,10 +157,16 @@ class MainWindow(QMainWindow):
         self.content.setCurrentWidget(self.split_page)
         self._set_active_nav("Split PDF")
 
+    def show_compress(self):
+        self.content.setCurrentWidget(self.compress_page)
+        self._set_active_nav("Compress PDF")
+
     def on_feature_selected(self, feature_name: str):
         if feature_name == "Merge PDF":
             self.show_merge()
         elif feature_name == "Split PDF":
             self.show_split()
+        elif feature_name == "Compress PDF":
+            self.show_compress()
         else:
             print(f"Fitur '{feature_name}' akan segera hadir.")

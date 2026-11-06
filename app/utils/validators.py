@@ -4,17 +4,23 @@ from typing import Tuple, List, Optional
 import pymupdf as fitz
 
 
-def validate_pdf_file(file_path: str) -> Tuple[bool, str, int]:
+def validate_pdf_file(file_path: str, password: Optional[str] = None) -> Tuple[bool, str, int]:
     """
-    Validate that a file exists, has .pdf extension, is not encrypted,
-    can be opened, and has at least 1 page.
+    Validate that a file exists, has .pdf extension, can be opened,
+    authenticates if password protected, and has at least 1 page.
     Returns: (is_valid, error_message, page_count)
     """
     if not file_path or not os.path.exists(file_path):
         return False, "File tidak ditemukan.", 0
 
     if not file_path.lower().endswith(".pdf"):
-        return False, "File bukan dokumen PDF (.pdf).", 0
+        return False, "File yang dipilih bukan PDF yang valid.", 0
+
+    try:
+        if os.path.getsize(file_path) == 0:
+            return False, "File PDF kosong atau tidak dapat diakses.", 0
+    except Exception:
+        return False, "File PDF tidak dapat diakses.", 0
 
     try:
         doc = fitz.open(file_path)
@@ -23,8 +29,14 @@ def validate_pdf_file(file_path: str) -> Tuple[bool, str, int]:
 
     try:
         if doc.is_encrypted:
-            doc.close()
-            return False, "File PDF dilindungi password (terenkripsi).", 0
+            if password is not None:
+                rc = doc.authenticate(password)
+                if rc == 0:
+                    doc.close()
+                    return False, "Password PDF salah atau diperlukan.", 0
+            else:
+                doc.close()
+                return False, "File PDF dilindungi password (terenkripsi).", 0
 
         page_count = doc.page_count
         doc.close()
@@ -39,6 +51,65 @@ def validate_pdf_file(file_path: str) -> Tuple[bool, str, int]:
         except Exception:
             pass
         return False, "Gagal memverifikasi isi file PDF.", 0
+
+
+def check_pdf_signatures(file_path: str, password: Optional[str] = None) -> bool:
+    """
+    Check if a PDF file contains digital signatures.
+    Returns True if signatures or signature form fields exist, else False.
+    """
+    if not file_path or not os.path.exists(file_path):
+        return False
+    doc = None
+    try:
+        doc = fitz.open(file_path)
+        if doc.is_encrypted and password:
+            doc.authenticate(password)
+        sigflags = doc.get_sigflags()
+        if sigflags != -1 and (sigflags & fitz.SigFlag_SignaturesExist):
+            doc.close()
+            return True
+        for page in doc:
+            for widget in page.widgets():
+                if widget.field_type == fitz.PDF_WIDGET_TYPE_SIGNATURE:
+                    doc.close()
+                    return True
+        doc.close()
+        return False
+    except Exception:
+        if doc:
+            try:
+                doc.close()
+            except Exception:
+                pass
+        return False
+
+
+def validate_output_filename(filename: str) -> Tuple[bool, str]:
+    """
+    Validate that an output filename is safe and valid on Windows / common filesystems.
+    """
+    if not filename or not filename.strip():
+        return False, "Nama file tidak boleh kosong."
+
+    clean_name = filename.strip()
+    forbidden_chars = r'[<>:"/\\|?*]'
+    if re.search(forbidden_chars, clean_name):
+        return False, 'Nama file tidak boleh mengandung karakter berikut: < > : " / \\ | ? *'
+
+    base, _ = os.path.splitext(clean_name)
+    reserved_names = {
+        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5",
+        "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4",
+        "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+    }
+    if base.strip().upper() in reserved_names:
+        return False, f"Nama file '{base}' adalah nama yang dicadangkan oleh sistem operasi."
+
+    if clean_name.endswith(".") or clean_name.endswith(" "):
+        return False, "Nama file tidak boleh diakhiri titik atau spasi."
+
+    return True, ""
 
 
 def parse_page_range(range_str: str, max_pages: int) -> Tuple[bool, List[int], str]:
