@@ -160,6 +160,7 @@ class HomePage(QWidget):
             ("Compress PDF", "Kurangi ukuran file dokumen.", "Kompres PDF dengan pilihan kualitas."),
             ("Convert to PNG", "Ekspor halaman menjadi gambar.", "Ekspor halaman PDF menjadi PNG."),
             ("Crop PDF", "Potong area margin halaman.", "Potong area halaman PDF sesuai pilihan."),
+            ("Image to PDF", "Gabungkan gambar menjadi dokumen PDF.", "Gabungkan beberapa gambar menjadi satu file PDF."),
         ]
 
         self.cards: list[FeatureCard] = []

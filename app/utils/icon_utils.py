@@ -13,6 +13,8 @@ FEATURE_ICON_FILES = {
     "Compress PDF": "icon compres.png",
     "Convert to PNG": "icon convert.png",
     "Crop PDF": "icon crop.png",
+    "Image to PDF": "icon conver image to pdf.png",
+    "Convert Images to PDF": "icon conver image to pdf.png",
 }
 
 
