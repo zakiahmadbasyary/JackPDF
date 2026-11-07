@@ -9,10 +9,12 @@ block_cipher = None
 datas = [
     ('assets/icons', 'assets/icons'),
     ('assets/styles', 'assets/styles'),
+    ('assets/models', 'assets/models'),
 ]
 
-# Collect all package data files from PyMuPDF (YAML, ONNX models, layout resources)
+# Collect all package data files from PyMuPDF and ONNX Runtime
 datas += collect_data_files('pymupdf')
+datas += collect_data_files('onnxruntime')
 
 # Explicit hidden imports for runtime safety, including all pymupdf submodules
 hidden_imports = [
@@ -24,6 +26,8 @@ hidden_imports = [
     'pypdf',
     'PIL',
     'PIL.Image',
+    'rembg',
+    'onnxruntime',
 ] + collect_submodules('pymupdf')
 
 a = Analysis(

@@ -15,6 +15,8 @@ FEATURE_ICON_FILES = {
     "Crop PDF": "icon crop.png",
     "Image to PDF": "icon conver image to pdf.png",
     "Convert Images to PDF": "icon conver image to pdf.png",
+    "Background Changer": "icon changes back.png",
+    "Change Background": "icon changes back.png",
 }
 
 

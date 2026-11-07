@@ -4,3 +4,4 @@ pypdf
 Pillow
 pytest
 pyinstaller
+rembg

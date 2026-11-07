@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 
 from app.ui.dialogs.settings_dialog import SettingsDialog
 from app.ui.home_page import HomePage
+from app.ui.pages.background_changer_page import BackgroundChangerPage
 from app.ui.pages.compress_page import CompressPage
 from app.ui.pages.convert_images_to_pdf_page import ConvertImagesToPdfPage
 from app.ui.pages.convert_png_page import ConvertPngPage
@@ -88,6 +89,7 @@ class MainWindow(QMainWindow):
             ("Convert to PNG", "Ekspor halaman PDF menjadi gambar PNG.", True),
             ("Crop PDF", "Pilih area halaman PDF yang ingin dipotong.", True),
             ("Image to PDF", "Gabungkan file gambar menjadi dokumen PDF.", True),
+            ("Background Changer", "Hapus dan ganti latar belakang foto dengan AI.", True),
         ]
 
         for label, tooltip, is_active in nav_items:
@@ -115,6 +117,8 @@ class MainWindow(QMainWindow):
                 button.clicked.connect(self.show_crop)
             elif label == "Image to PDF":
                 button.clicked.connect(self.show_convert_images_to_pdf)
+            elif label == "Background Changer":
+                button.clicked.connect(self.show_background_changer)
 
             self.nav_buttons[label] = button
             sidebar_layout.addWidget(button)
@@ -138,6 +142,7 @@ class MainWindow(QMainWindow):
         self.convert_png_page = ConvertPngPage()
         self.crop_page = CropPage()
         self.convert_images_to_pdf_page = ConvertImagesToPdfPage()
+        self.background_changer_page = BackgroundChangerPage()
 
         # Connect Navigation
         self.home_page.feature_selected.connect(self.on_feature_selected)
@@ -148,6 +153,7 @@ class MainWindow(QMainWindow):
         self.convert_png_page.go_back.connect(self.show_home)
         self.crop_page.go_back.connect(self.show_home)
         self.convert_images_to_pdf_page.go_back.connect(self.show_home)
+        self.background_changer_page.go_back.connect(self.show_home)
 
         self.content.addWidget(self.home_page)                  # index 0
         self.content.addWidget(self.merge_page)                 # index 1
@@ -156,6 +162,7 @@ class MainWindow(QMainWindow):
         self.content.addWidget(self.convert_png_page)           # index 4
         self.content.addWidget(self.crop_page)                  # index 5
         self.content.addWidget(self.convert_images_to_pdf_page) # index 6
+        self.content.addWidget(self.background_changer_page)    # index 7
 
         root_layout.addWidget(sidebar)
         root_layout.addWidget(self.content, 1)
@@ -200,6 +207,10 @@ class MainWindow(QMainWindow):
         self.content.setCurrentWidget(self.convert_images_to_pdf_page)
         self._set_active_nav("Image to PDF")
 
+    def show_background_changer(self):
+        self.content.setCurrentWidget(self.background_changer_page)
+        self._set_active_nav("Background Changer")
+
     def open_settings(self):
         dialog = SettingsDialog(self)
         dialog.exec()
@@ -217,5 +228,7 @@ class MainWindow(QMainWindow):
             self.show_crop()
         elif feature_name in ("Image to PDF", "Convert Images to PDF"):
             self.show_convert_images_to_pdf()
+        elif feature_name in ("Background Changer", "Change Background"):
+            self.show_background_changer()
         else:
             print(f"Fitur '{feature_name}' akan segera hadir.")
