@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 import os
-from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules, copy_metadata
 
 block_cipher = None
 
@@ -16,6 +16,13 @@ datas = [
 datas += collect_data_files('pymupdf')
 datas += collect_data_files('onnxruntime')
 
+# Collect package distribution metadata for packages that use importlib.metadata
+datas += copy_metadata('pymatting')
+datas += copy_metadata('rembg')
+datas += copy_metadata('onnxruntime')
+datas += copy_metadata('pooch')
+datas += copy_metadata('tqdm')
+
 # Explicit hidden imports for runtime safety, including all pymupdf submodules
 hidden_imports = [
     'PySide6.QtCore',
@@ -27,7 +34,13 @@ hidden_imports = [
     'PIL',
     'PIL.Image',
     'rembg',
+    'rembg.bg',
+    'rembg.sessions',
+    'rembg.sessions.base',
+    'rembg.sessions.u2net',
+    'rembg.session_factory',
     'onnxruntime',
+    'unittest',
 ] + collect_submodules('pymupdf')
 
 a = Analysis(
@@ -39,7 +52,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['pytest', 'unittest'],
+    excludes=['pytest'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,

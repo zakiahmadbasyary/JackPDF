@@ -12,7 +12,6 @@ Provides:
 import os
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from PIL import Image, ImageOps
-import rembg
 
 # ---------------------------------------------------------------------------
 # 5 Standardized Background Colors (as required by specification)
@@ -147,12 +146,37 @@ def load_and_orient_image(file_path: str) -> Image.Image:
         return img.copy()
 
 
+def ensure_model_available(model_name: str = "u2netp") -> str:
+    """
+    Ensure the ONNX model is available locally.
+    If not in ~/.rembg/models, check bundled assets and copy over so it works 100% offline.
+    """
+    user_model_path = os.path.expanduser(f"~/.rembg/models/{model_name}/{model_name}.onnx")
+    if os.path.exists(user_model_path):
+        return user_model_path
+
+    try:
+        from app.utils.resource_utils import get_resource_path
+        bundled_path = get_resource_path(os.path.join("assets", "models", model_name, f"{model_name}.onnx"))
+        if os.path.exists(bundled_path):
+            os.makedirs(os.path.dirname(user_model_path), exist_ok=True)
+            import shutil
+            shutil.copy2(bundled_path, user_model_path)
+            return user_model_path
+    except Exception:
+        pass
+
+    return user_model_path
+
+
 def get_model_session(model_name: str = "u2netp"):
     """
     Get or create a cached rembg BaseSession for the specified model name.
     """
     global _CACHED_SESSIONS
     if model_name not in _CACHED_SESSIONS:
+        import rembg
+        ensure_model_available(model_name)
         _CACHED_SESSIONS[model_name] = rembg.new_session(model_name)
     return _CACHED_SESSIONS[model_name]
 
@@ -167,6 +191,7 @@ def remove_background(
     Returns:
         An RGBA Image where the background has alpha = 0.
     """
+    import rembg
     session = get_model_session(model_name)
     result = rembg.remove(image, session=session, post_process_mask=post_process)
     if result.mode != "RGBA":
